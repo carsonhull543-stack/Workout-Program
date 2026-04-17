@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0a">
+<title>Block Program — Baseball</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface2: #1c1c1c;
+  --border: #2a2a2a;
+  --border2: #333;
+  --text: #f0f0f0;
+  --muted: #888;
+  --hint: #555;
+  --green: #22c55e;
+  --green-dim: #14532d;
+  --green-bg: #052010;
+  --amber: #f59e0b;
+  --amber-dim: #78350f;
+  --amber-bg: #1c1000;
+  --purple: #a78bfa;
+  --purple-dim: #4c1d95;
+  --purple-bg: #120a2a;
+  --red: #ef4444;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font: 'Barlow', sans-serif;
+  --font-cond: 'Barlow Condensed', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.5; overscroll-behavior: none; }
+
+/* Layout */
+.app { display: flex; flex-direction: column; height: 100dvh; max-width: 480px; margin: 0 auto; }
+.header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.header-top { display: flex; align-items: center; justify-content: space-between; }
+.app-title { font-family: var(--font-cond); font-size: 22px; font-weight: 700; letter-spacing: 0.04em; color: var(--text); }
+.phase-badge { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; }
+.phase-badge.b1 { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-dim); }
+.phase-badge.b2 { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-dim); }
+.phase-badge.b3 { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-dim); }
+
+.week-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.week-btn { width: 30px; height: 30px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--surface); color: var(--text); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.week-btn:active { background: var(--surface2); }
+.week-info { flex: 1; }
+.week-label { font-size: 14px; font-weight: 600; color: var(--text); }
+.week-sub { font-size: 12px; color: var(--muted); }
+.week-progress { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+.week-progress-fill { height: 100%; border-radius: 2px; background: var(--green); transition: width 0.3s; }
+
+.content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.scroll-pad { padding-bottom: 80px; }
+
+/* Bottom nav */
+.bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--surface); border-top: 1px solid var(--border); display: flex; padding: 8px 0 max(8px, env(safe-area-inset-bottom)); z-index: 100; }
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; cursor: pointer; color: var(--hint); font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; border: none; background: none; }
+.nav-item.active { color: var(--green); }
+.nav-icon { font-size: 20px; line-height: 1; }
+
+/* Screens */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* Day selector */
+.day-selector { display: flex; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.day-btn { flex: 1; padding: 8px 4px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: transparent; color: var(--muted); font-family: var(--font-cond); font-size: 14px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; text-align: center; }
+.day-btn.active { background: var(--surface2); color: var(--text); border-color: #444; }
+.day-btn:active { opacity: 0.7; }
+.day-btn .day-sub { font-size: 10px; font-weight: 500; color: var(--hint); margin-top: 2px; display: block; }
+.day-btn.active .day-sub { color: var(--muted); }
+
+/* Exercise cards */
+.ex-card { border-bottom: 1px solid var(--border); }
+.ex-header { display: flex; align-items: center; padding: 14px 16px; gap: 12px; cursor: pointer; }
+.ex-check { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--border2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.ex-check.done { background: var(--green); border-color: var(--green); }
+.ex-check.done::after { content: ''; width: 6px; height: 10px; border: 2px solid #000; border-top: none; border-left: none; transform: rotate(45deg); display: block; margin-top: -2px; }
+.ex-info { flex: 1; min-width: 0; }
+.ex-name { font-size: 15px; font-weight: 500; color: var(--text); }
+.ex-scheme { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.ex-arrow { color: var(--hint); font-size: 12px; transition: transform 0.2s; }
+.ex-arrow.open { transform: rotate(180deg); }
+
+.ex-body { display: none; padding: 0 16px 16px; }
+.ex-body.open { display: block; }
+.set-header { display: grid; grid-template-columns: 32px 1fr 1fr 1fr 24px; gap: 6px; margin-bottom: 6px; }
+.set-header span { font-size: 11px; color: var(--hint); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; text-align: center; }
+.set-header span:first-child { text-align: left; }
+.set-row { display: grid; grid-template-columns: 32px 1fr 1fr 1fr 24px; gap: 6px; align-items: center; margin-bottom: 6px; }
+.set-num { font-size: 12px; color: var(--muted); font-weight: 600; }
+.set-input { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 8px 6px; font-size: 14px; color: var(--text); text-align: center; font-family: var(--font); width: 100%; -webkit-appearance: none; }
+.set-input:focus { outline: none; border-color: #555; }
+.del-set { background: none; border: none; color: var(--hint); font-size: 16px; cursor: pointer; padding: 4px; line-height: 1; }
+.del-set:active { color: var(--red); }
+.add-set-btn { background: none; border: none; color: var(--green); font-size: 13px; font-weight: 500; cursor: pointer; padding: 4px 0 8px; display: block; }
+.notes-box { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 13px; color: var(--muted); font-family: var(--font); resize: none; margin-top: 4px; }
+.notes-box:focus { outline: none; border-color: #444; color: var(--text); }
+.notes-box::placeholder { color: var(--hint); }
+
+/* Save button */
+.save-wrap { padding: 14px 16px; border-top: 1px solid var(--border); }
+.save-btn { width: 100%; padding: 14px; border-radius: var(--radius); border: none; background: var(--green); color: #000; font-family: var(--font-cond); font-size: 16px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: opacity 0.15s; }
+.save-btn:active { opacity: 0.8; }
+
+/* Progress screen */
+.prog-section { padding: 20px 16px 0; }
+.prog-title { font-family: var(--font-cond); font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+.metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
+.metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 10px; text-align: center; }
+.metric-val { font-family: var(--font-cond); font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+.metric-lbl { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.block-prog { margin-bottom: 16px; }
+.block-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.block-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.block-pct { font-size: 12px; color: var(--muted); }
+.prog-bar { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+.prog-fill.b1 { background: var(--green); }
+.prog-fill.b2 { background: var(--amber); }
+.prog-fill.b3 { background: var(--purple); }
+
+.phase-cards { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
+.phase-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.phase-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.phase-card-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.phase-card-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* Log screen */
+.log-list { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.log-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.log-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.log-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.log-date { font-size: 12px; color: var(--muted); }
+.log-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.log-done { font-size: 12px; color: var(--green); font-weight: 500; }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--hint); }
+.empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+
+/* Toast */
+.toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--green); color: #000; font-size: 13px; font-weight: 600; padding: 10px 20px; border-radius: 20px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 200; white-space: nowrap; }
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="header-top">
+      <div class="app-title">⚾ BLOCK PROGRAM</div>
+      <div class="phase-badge b1" id="phase-badge">Block 1</div>
+    </div>
+    <div class="week-row">
+      <button class="week-btn" onclick="changeWeek(-1)">&#8592;</button>
+      <div class="week-info">
+        <div class="week-label" id="week-label">Week 1 of 14</div>
+        <div class="week-sub" id="week-phase-sub">Accumulation · High volume</div>
+      </div>
+      <button class="week-btn" onclick="changeWeek(1)">&#8594;</button>
+    </div>
+    <div class="week-progress" style="margin-top:10px;">
+      <div class="week-progress-fill" id="week-progress-fill" style="width:7%"></div>
+    </div>
+  </div>
+
+  <div class="content" id="main-content">
+
+    <!-- WORKOUT SCREEN -->
+    <div class="screen active" id="screen-workout">
+      <div class="day-selector">
+        <button class="day-btn active" id="dbtn-0" onclick="setDay(0)">
+          Day A<span class="day-sub" id="dsub-0">Lower</span>
+        </button>
+        <button class="day-btn" id="dbtn-1" onclick="setDay(1)">
+          Day B<span class="day-sub" id="dsub-1">Upper</span>
+        </button>
+        <button class="day-btn" id="dbtn-2" onclick="setDay(2)">
+          Day C<span class="day-sub" id="dsub-2">Full</span>
+        </button>
+      </div>
+      <div class="scroll-pad">
+        <div id="exercise-list"></div>
+        <div class="save-wrap">
+          <button class="save-btn" onclick="saveWorkout()">Save Workout</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROGRESS SCREEN -->
+    <div class="screen" id="screen-progress">
+      <div class="scroll-pad">
+        <div class="prog-section">
+          <div class="prog-title">Overview</div>
+          <div class="metrics">
+            <div class="metric"><div class="metric-val" id="p-week">1</div><div class="metric-lbl">Week</div></div>
+            <div class="metric"><div class="metric-val" id="p-sessions">0</div><div class="metric-lbl">Sessions</div></div>
+            <div class="metric"><div class="metric-val" id="p-pct">0%</div><div class="metric-lbl">Done</div></div>
+          </div>
+          <div class="prog-title">Block progress</div>
+          <div class="block-prog">
+            <div class="block-head"><span class="block-name">Block 1 — Accumulation</span><span class="block-pct" id="b1p">0%</span></div>
+            <div class="prog-bar"><div class="prog-fill b1" id="b1bar" style="width:0%"></div></div>
+          </div>
+          <div class="block-prog">
+            <div class="block-head"><span class="block-name">Block 2 — Intensification</span><span class="block-pct" id="b2p">0%</span></div>
+            <div class="prog-bar"><div class="prog-fill b2" id="b2bar" style="width:0%"></div></div>
+          </div>
+          <div class="block-prog">
+            <div class="block-head"><span class="block-name">Block 3 — Realization</span><span class="block-pct" id="b3p">0%</span></div>
+            <div class="prog-bar"><div class="prog-fill b3" id="b3bar" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div class="phase-cards">
+          <div class="phase-card">
+            <div class="phase-card-head"><span class="phase-badge b1">Wk 1–5</span><span class="phase-card-title">Accumulation</span></div>
+            <div class="phase-card-desc">4–5 sets · 6–10 reps · 65–75% intensity. Build muscle, movement quality, posterior chain and core stability.</div>
+          </div>
+          <div class="phase-card">
+            <div class="phase-card-head"><span class="phase-badge b2">Wk 6–10</span><span class="phase-card-title">Intensification</span></div>
+            <div class="phase-card-desc">4–5 sets · 3–6 reps · 80–90% intensity. Max strength, rotational power, lateral speed. Deload week 9.</div>
+          </div>
+          <div class="phase-card">
+            <div class="phase-card-head"><span class="phase-badge b3">Wk 11–14</span><span class="phase-card-title">Realization</span></div>
+            <div class="phase-card-desc">3–4 sets · 1–4 reps · 85–95% intensity. Express power and speed. Arm care priority. Taper into season.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOG SCREEN -->
+    <div class="screen" id="screen-log">
+      <div class="scroll-pad">
+        <div class="log-list" id="log-list"></div>
+      </div>
+    </div>
+
+  </div><!-- end content -->
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-workout" onclick="showScreen('workout')">
+      <span class="nav-icon">🏋️</span>Today
+    </button>
+    <button class="nav-item" id="nav-progress" onclick="showScreen('progress')">
+      <span class="nav-icon">📈</span>Progress
+    </button>
+    <button class="nav-item" id="nav-log" onclick="showScreen('log')">
+      <span class="nav-icon">📋</span>Log
+    </button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PROGRAM = {
+  0: { name:"Accumulation", weeks:[1,5], sub:"High volume", days:[
+    { short:"Lower", name:"Lower — squat focus", ex:[
+      {n:"Back squat",s:"4×8"},{n:"Romanian deadlift",s:"4×10"},
+      {n:"Rear-foot elevated split squat",s:"3×10/leg"},{n:"Nordic curl",s:"3×6"},
+      {n:"Pallof press",s:"3×12/side"},{n:"Copenhagen plank",s:"3×20s/side"}
+    ]},
+    { short:"Upper", name:"Upper — push/pull", ex:[
+      {n:"Bench press",s:"4×8"},{n:"Barbell row",s:"4×8"},
+      {n:"Incline DB press",s:"3×10"},{n:"Cable face pull",s:"3×15"},
+      {n:"DB lateral raise",s:"3×15"},{n:"Band pull-apart",s:"3×20"}
+    ]},
+    { short:"Full", name:"Full body — athletic", ex:[
+      {n:"Trap bar deadlift",s:"4×8"},{n:"Pull-ups / weighted",s:"4×8"},
+      {n:"DB walking lunge",s:"3×12/leg"},{n:"Single-arm cable row",s:"3×12/side"},
+      {n:"Rotational med ball slam",s:"3×8/side"},{n:"Dead bug",s:"3×8/side"}
+    ]}
+  ]},
+  1: { name:"Intensification", weeks:[6,10], sub:"Heavy & powerful", days:[
+    { short:"Lower", name:"Lower — strength", ex:[
+      {n:"Back squat",s:"5×4"},{n:"Romanian deadlift",s:"4×6"},
+      {n:"Lateral bound (stick landing)",s:"4×5/side"},{n:"Glute-ham raise / Nordic",s:"3×5"},
+      {n:"Rotational cable chop",s:"3×10/side"}
+    ]},
+    { short:"Upper", name:"Upper — heavy push/pull", ex:[
+      {n:"Bench press",s:"5×4"},{n:"Weighted pull-up",s:"4×5"},
+      {n:"DB floor press",s:"3×8"},{n:"Seated cable row",s:"3×8"},
+      {n:"Landmine press",s:"3×8/side"},{n:"Band pull-apart",s:"3×20"}
+    ]},
+    { short:"Power", name:"Power + speed", ex:[
+      {n:"Trap bar deadlift (heavy)",s:"5×3"},{n:"Box jump",s:"5×3"},
+      {n:"Hang power clean / DB jump shrug",s:"4×4"},{n:"Rotational med ball throw",s:"4×6/side"},
+      {n:"Sprint 10–20 yd",s:"6 reps"},{n:"Suitcase carry",s:"3×30 yd/side"}
+    ]}
+  ]},
+  2: { name:"Realization", weeks:[11,14], sub:"Peak for season", days:[
+    { short:"Lower", name:"Lower power", ex:[
+      {n:"Back squat (heavy triple)",s:"3×3"},{n:"Box jump (max height)",s:"4×3"},
+      {n:"Broad jump",s:"4×3"},{n:"RFESS (light, fast)",s:"3×6/leg"},
+      {n:"Lateral shuffle → sprint",s:"5×"}
+    ]},
+    { short:"Upper", name:"Upper + arm care", ex:[
+      {n:"Bench press (heavy)",s:"3×3"},{n:"Weighted pull-up",s:"3×4"},
+      {n:"Band Y-T-W",s:"3×12 each"},{n:"External rotation (band/cable)",s:"3×15"},
+      {n:"Wrist roller / forearm work",s:"3 sets"}
+    ]},
+    { short:"Speed", name:"Full power + speed", ex:[
+      {n:"Trap bar deadlift (near-max)",s:"3×2"},{n:"Hang power clean",s:"4×3"},
+      {n:"Rotational med ball throw (wall)",s:"4×8/side"},{n:"Sprint 10 yd (reactive start)",s:"8 reps"},
+      {n:"T-drill / 5-10-5 shuttle",s:"4 reps"}
+    ]}
+  ]}
+};
+
+let week = 1, phase = 0, day = 0;
+let sessionData = {};
+let workoutLog = [];
+
+function load() {
+  try {
+    week = parseInt(localStorage.getItem('bb_week') || '1');
+    sessionData = JSON.parse(localStorage.getItem('bb_data') || '{}');
+    workoutLog = JSON.parse(localStorage.getItem('bb_log') || '[]');
+  } catch(e) {}
+  phase = week <= 5 ? 0 : week <= 10 ? 1 : 2;
+}
+
+function save() {
+  localStorage.setItem('bb_week', week);
+  localStorage.setItem('bb_data', JSON.stringify(sessionData));
+  localStorage.setItem('bb_log', JSON.stringify(workoutLog));
+}
+
+function getKey() { return `p${phase}-d${day}-w${week}`; }
+
+function getSessionEx(ei) {
+  const k = getKey();
+  if (!sessionData[k]) sessionData[k] = {};
+  if (!sessionData[k][ei]) sessionData[k][ei] = { done: false, sets: [{w:'',r:'',rpe:''}], notes: '' };
+  return sessionData[k][ei];
+}
+
+function updateHeader() {
+  const p = PROGRAM[phase];
+  const badges = ['b1','b2','b3'];
+  const badge = document.getElementById('phase-badge');
+  badge.className = 'phase-badge ' + badges[phase];
+  badge.textContent = 'Block ' + (phase+1);
+  document.getElementById('week-label').textContent = `Week ${week} of 14`;
+  document.getElementById('week-phase-sub').textContent = p.name + ' · ' + p.sub;
+  document.getElementById('week-progress-fill').style.width = Math.round((week/14)*100) + '%';
+  const days = p.days;
+  [0,1,2].forEach(i => {
+    document.getElementById('dsub-' + i).textContent = days[i].short;
+  });
+}
+
+function renderExercises() {
+  const exs = PROGRAM[phase].days[day].ex;
+  let html = '';
+  exs.forEach((ex, ei) => {
+    const data = getSessionEx(ei);
+    html += `<div class="ex-card">
+      <div class="ex-header" onclick="toggleBody(${ei})">
+        <div class="ex-check${data.done ? ' done' : ''}" id="chk-${ei}" onclick="event.stopPropagation();toggleDone(${ei})"></div>
+        <div class="ex-info">
+          <div class="ex-name">${ex.n}</div>
+          <div class="ex-scheme">${ex.s}</div>
+        </div>
+        <div class="ex-arrow" id="arr-${ei}">▼</div>
+      </div>
+      <div class="ex-body" id="body-${ei}">
+        <div class="set-header"><span>#</span><span>Weight</span><span>Reps</span><span>RPE</span><span></span></div>
+        <div id="sets-${ei}">`;
+    data.sets.forEach((set, si) => {
+      html += `<div class="set-row">
+        <span class="set-num">S${si+1}</span>
+        <input class="set-input" type="number" inputmode="decimal" placeholder="lbs" value="${set.w}" onchange="updateSet(${ei},${si},'w',this.value)">
+        <input class="set-input" type="number" inputmode="decimal" placeholder="—" value="${set.r}" onchange="updateSet(${ei},${si},'r',this.value)">
+        <input class="set-input" type="number" inputmode="decimal" placeholder="—" min="1" max="10" value="${set.rpe}" onchange="updateSet(${ei},${si},'rpe',this.value)">
+        <button class="del-set" onclick="delSet(${ei},${si})">×</button>
+      </div>`;
+    });
+    html += `</div>
+        <button class="add-set-btn" onclick="addSet(${ei})">+ Add set</button>
+        <textarea class="notes-box" rows="2" placeholder="Notes..." onchange="updateNotes(${ei},this.value)">${data.notes}</textarea>
+      </div>
+    </div>`;
+  });
+  document.getElementById('exercise-list').innerHTML = html;
+}
+
+function toggleBody(ei) {
+  const body = document.getElementById('body-' + ei);
+  const arr = document.getElementById('arr-' + ei);
+  const isOpen = body.classList.toggle('open');
+  arr.classList.toggle('open', isOpen);
+}
+
+function toggleDone(ei) {
+  const data = getSessionEx(ei);
+  data.done = !data.done;
+  document.getElementById('chk-' + ei).className = 'ex-check' + (data.done ? ' done' : '');
+  save();
+}
+
+function updateSet(ei, si, field, val) {
+  getSessionEx(ei).sets[si][field] = val;
+  save();
+}
+
+function addSet(ei) {
+  getSessionEx(ei).sets.push({w:'',r:'',rpe:''});
+  save(); renderExercises();
+  document.getElementById('body-' + ei).classList.add('open');
+  document.getElementById('arr-' + ei).classList.add('open');
+}
+
+function delSet(ei, si) {
+  const sets = getSessionEx(ei).sets;
+  if (sets.length > 1) { sets.splice(si, 1); save(); renderExercises(); }
+}
+
+function updateNotes(ei, val) {
+  getSessionEx(ei).notes = val;
+  save();
+}
+
+function setDay(d) {
+  day = d;
+  [0,1,2].forEach(i => document.getElementById('dbtn-' + i).classList.toggle('active', i === d));
+  renderExercises();
+  document.getElementById('main-content').scrollTop = 0;
+}
+
+function changeWeek(delta) {
+  week = Math.max(1, Math.min(14, week + delta));
+  phase = week <= 5 ? 0 : week <= 10 ? 1 : 2;
+  save(); updateHeader(); renderExercises();
+}
+
+function saveWorkout() {
+  const k = getKey();
+  const exs = PROGRAM[phase].days[day].ex;
+  const data = sessionData[k] || {};
+  const doneCount = Object.values(data).filter(e => e.done).length;
+  const entry = {
+    id: k,
+    date: new Date().toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'}),
+    phase: PROGRAM[phase].name,
+    dayName: PROGRAM[phase].days[day].name,
+    week, done: doneCount, total: exs.length
+  };
+  workoutLog = [entry, ...workoutLog.filter(e => e.id !== k)];
+  save();
+  showToast(`Saved! ${doneCount}/${exs.length} completed`);
+  renderProgress();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function renderProgress() {
+  document.getElementById('p-week').textContent = week;
+  document.getElementById('p-sessions').textContent = workoutLog.length;
+  document.getElementById('p-pct').textContent = Math.round(workoutLog.length / 42 * 100) + '%';
+  const b1 = workoutLog.filter(e => e.week >= 1 && e.week <= 5).length;
+  const b2 = workoutLog.filter(e => e.week >= 6 && e.week <= 10).length;
+  const b3 = workoutLog.filter(e => e.week >= 11).length;
+  const b1p = Math.min(100, Math.round(b1/15*100));
+  const b2p = Math.min(100, Math.round(b2/15*100));
+  const b3p = Math.min(100, Math.round(b3/12*100));
+  ['b1','b2','b3'].forEach((b, i) => {
+    const pct = [b1p, b2p, b3p][i];
+    document.getElementById(b + 'p').textContent = pct + '%';
+    document.getElementById(b + 'bar').style.width = pct + '%';
+  });
+}
+
+function renderLog() {
+  const el = document.getElementById('log-list');
+  if (!workoutLog.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No sessions logged yet.<br>Complete a workout to see it here.</p></div>';
+    return;
+  }
+  el.innerHTML = workoutLog.slice(0, 30).map(e => `
+    <div class="log-item">
+      <div class="log-row">
+        <div class="log-title">Wk ${e.week} · ${e.phase}</div>
+        <div class="log-date">${e.date}</div>
+      </div>
+      <div class="log-meta">${e.dayName}</div>
+      <div class="log-done">${e.done}/${e.total} exercises done</div>
+    </div>`).join('');
+}
+
+function showScreen(name) {
+  ['workout','progress','log'].forEach(s => {
+    document.getElementById('screen-' + s).classList.toggle('active', s === name);
+    document.getElementById('nav-' + s).classList.toggle('active', s === name);
+  });
+  if (name === 'progress') renderProgress();
+  if (name === 'log') renderLog();
+  document.getElementById('main-content').scrollTop = 0;
+}
+
+load();
+updateHeader();
+renderExercises();
+renderProgress();
+</script>
+</body>
+</html>
